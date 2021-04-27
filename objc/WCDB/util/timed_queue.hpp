@@ -41,7 +41,7 @@ public:
 
     void reQueue(const Key &key)
     {
-        std::lock_guard<std::mutex> lockGuard(m_mutex);
+        std::lock_guard<std::mutex> lockGuard(*m_mutex);
         bool signal = m_list.empty();
 
         auto iter = m_map.find(key);
@@ -62,7 +62,7 @@ public:
     void waitUntilExpired(const OnExpired &onExpired, bool forever = true)
     {
         {
-            std::unique_lock<std::mutex> lockGuard(m_mutex);
+            std::unique_lock<std::mutex> lockGuard(*m_mutex);
             while (m_list.empty()) {
                 if (forever) {
                     m_cond.wait(lockGuard);
@@ -76,7 +76,7 @@ public:
             Element element;
             Time now = std::chrono::steady_clock::now();
             {
-                std::unique_lock<std::mutex> lockGuard(m_mutex);
+                std::unique_lock<std::mutex> lockGuard(*m_mutex);
                 element = m_list.back();
                 if (now > element.second) {
                     m_list.pop_back();
@@ -100,7 +100,7 @@ protected:
     Map m_map;
     List m_list;
     std::condition_variable m_cond;
-    std::mutex m_mutex;
+    std::mutex *m_mutex = new std::mutex;
     std::chrono::seconds m_delay;
 };
 
