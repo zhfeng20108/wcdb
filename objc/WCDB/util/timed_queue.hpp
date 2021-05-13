@@ -77,11 +77,15 @@ public:
             Time now = std::chrono::steady_clock::now();
             {
                 std::unique_lock<std::mutex> lockGuard(*m_mutex);
-                element = m_list.back();
-                if (now > element.second) {
-                    m_list.pop_back();
-                    m_map.erase(element.first);
-                    get = true;
+                if(m_list.empty()) {
+                    return;
+                } else {
+                    element = m_list.back();
+                    if (now > element.second) {
+                        m_list.pop_back();
+                        m_map.erase(element.first);
+                        get = true;
+                    }
                 }
             }
             if (get) {
