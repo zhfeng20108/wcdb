@@ -65,7 +65,11 @@ public:
             std::unique_lock<std::mutex> lockGuard(*m_mutex);
             while (m_list.empty()) {
                 if (forever) {
-                    m_cond.wait(lockGuard);
+                    try {
+                        m_cond.wait(lockGuard);
+                    } catch (const std::exception &e) {
+                        return;
+                    }
                 } else {
                     return;
                 }
@@ -76,7 +80,7 @@ public:
             Element element;
             Time now = std::chrono::steady_clock::now();
             {
-                std::unique_lock<std::mutex> lockGuard(*m_mutex);
+                std::lock_guard<std::mutex> lockGuard(*m_mutex);
                 if(m_list.empty()) {
                     return;
                 } else {
