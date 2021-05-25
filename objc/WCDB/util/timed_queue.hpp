@@ -65,11 +65,7 @@ public:
             std::unique_lock<std::mutex> lockGuard(*m_mutex);
             while (m_list.empty()) {
                 if (forever) {
-                    try {
-                        m_cond.wait(lockGuard);
-                    } catch (const std::exception &e) {
-                        return;
-                    }
+                    m_cond.wait(lockGuard);
                 } else {
                     return;
                 }
@@ -82,7 +78,7 @@ public:
             {
                 std::lock_guard<std::mutex> lockGuard(*m_mutex);
                 if(m_list.empty()) {
-                    return;
+                    get = true;
                 } else {
                     element = m_list.back();
                     if (now > element.second) {
