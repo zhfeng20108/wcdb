@@ -47,7 +47,7 @@ protected:
     static std::unordered_map<std::string,
                               std::pair<std::shared_ptr<HandlePool>, int>>
         s_pools; //path->{pool, reference}
-    static std::mutex s_mutex;
+    static std::mutex *s_mutex;
 
 public:
     std::atomic<Tag> tag;

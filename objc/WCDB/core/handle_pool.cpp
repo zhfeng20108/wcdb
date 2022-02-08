@@ -27,7 +27,7 @@ namespace WCDB {
 
 std::unordered_map<std::string, std::pair<std::shared_ptr<HandlePool>, int>>
     HandlePool::s_pools;
-std::mutex HandlePool::s_mutex;
+std::mutex *HandlePool::s_mutex = new std::mutex;
 const int HandlePool::s_hardwareConcurrency =
     std::thread::hardware_concurrency();
 const int HandlePool::s_maxConcurrency = 64;
@@ -36,7 +36,7 @@ RecyclableHandlePool HandlePool::GetPool(const std::string &path,
                                          const Configs &defaultConfigs)
 {
     std::shared_ptr<HandlePool> pool = nullptr;
-    std::lock_guard<std::mutex> lockGuard(s_mutex);
+    std::lock_guard<std::mutex> lockGuard(*s_mutex);
     auto iter = s_pools.find(path);
     if (iter == s_pools.end()) {
         pool.reset(new HandlePool(path, defaultConfigs));
@@ -47,7 +47,7 @@ RecyclableHandlePool HandlePool::GetPool(const std::string &path,
     }
     //Can I store iter of unordered_map for later use?
     return RecyclableHandlePool(pool, [](std::shared_ptr<HandlePool> &pool) {
-        std::lock_guard<std::mutex> lockGuard(s_mutex);
+        std::lock_guard<std::mutex> lockGuard(*s_mutex);
         const auto &iter = s_pools.find(pool->path);
         if (--iter->second.second == 0) {
             s_pools.erase(iter);
@@ -57,14 +57,14 @@ RecyclableHandlePool HandlePool::GetPool(const std::string &path,
 
 RecyclableHandlePool HandlePool::GetPool(Tag tag)
 {
-    std::lock_guard<std::mutex> lockGuard(s_mutex);
+    std::lock_guard<std::mutex> lockGuard(*s_mutex);
     if (tag != InvalidTag) {
         for (auto iter : s_pools) {
             if (iter.second.first->tag == tag) {
                 ++iter.second.second;
                 return RecyclableHandlePool(
                     iter.second.first, [](std::shared_ptr<HandlePool> &pool) {
-                        std::lock_guard<std::mutex> lockGuard(s_mutex);
+                        std::lock_guard<std::mutex> lockGuard(*s_mutex);
                         const auto &iter = s_pools.find(pool->path);
                         if (--iter->second.second == 0) {
                             s_pools.erase(iter);
@@ -80,7 +80,7 @@ void HandlePool::PurgeFreeHandlesInAllPool()
 {
     std::list<std::shared_ptr<HandlePool>> handlePools;
     {
-        std::lock_guard<std::mutex> lockGuard(s_mutex);
+        std::lock_guard<std::mutex> lockGuard(*s_mutex);
         for (const auto &iter : s_pools) {
             handlePools.push_back(iter.second.first);
         }
